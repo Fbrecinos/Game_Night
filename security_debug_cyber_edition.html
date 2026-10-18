@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Security Debug</title>
+<style>
+:root{--cyan:#58ff9a;--pink:#ff4f70;--ink:#07110d;--paper:#dfffe9}
+*{box-sizing:border-box} body{margin:0;font-family:"Courier New",monospace;color:#10233e;background:#07110d;overflow:hidden}
+body:after{content:"";pointer-events:none;position:fixed;inset:0;background:repeating-linear-gradient(0deg,rgba(10,30,50,.05) 0 1px,transparent 1px 4px)}
+.screen{height:100vh;display:flex;flex-direction:column;position:relative}
+.sky{height:42%;background:linear-gradient(#07110d,#0b2118);position:relative;transition:.8s}
+.ocean{flex:1;background:linear-gradient(#0a271b,#07150f 70%,#020805);position:relative;transition:background 1s}
+.wave{position:absolute;top:-16px;left:-5%;width:110%;height:35px;background:#123c2a;border-radius:50%;animation:wave 4s ease-in-out infinite}
+@keyframes wave{50%{transform:translateY(8px) rotate(-.4deg)}}
+header{text-align:center;position:absolute;top:5%;width:100%;z-index:2}
+.logo{font-size:clamp(38px,7vw,92px);font-weight:900;letter-spacing:.14em;color:white;text-shadow:-5px 3px rgba(255,79,112,.65),5px -3px rgba(88,255,154,.65)}
+.sub{letter-spacing:.55em;color:#58ff9a;font-size:clamp(14px,2vw,28px);margin-top:24px}
+.card{position:absolute;z-index:4;left:50%;transform:translateX(-50%);bottom:4%;width:min(900px,90%);background:rgba(8,25,49,.95);border:5px solid var(--cyan);color:white;padding:28px;box-shadow:0 10px 0 rgba(20,150,190,.35)}
+button,input,select,textarea{font:inherit}
+button{cursor:pointer;background:#10213f;color:white;border:2px solid var(--cyan);padding:14px 20px;letter-spacing:.15em;font-weight:bold}
+button:hover{background:#18345e}.primary{width:100%;font-size:clamp(20px,3vw,36px);padding:25px}
+.settings{display:none;max-height:78vh;overflow:auto;bottom:8%}.grid{display:grid;grid-template-columns:1fr 1fr;gap:15px}
+label{display:flex;flex-direction:column;gap:6px;font-size:13px;letter-spacing:.08em}
+input,select,textarea{padding:10px;background:#dffaff;color:#0c1a32;border:0}.full{grid-column:1/-1}
+.actions{display:flex;gap:10px;margin-top:18px}.actions button{flex:1}
+.gear{position:absolute;right:20px;top:20px;z-index:8;width:52px;height:52px;font-size:23px;padding:0}
+.game{display:none;position:absolute;inset:0;z-index:6;color:white;text-align:center;background:linear-gradient(#0d638f,#04152a);transition:background 1s}
+.gameInner{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8%}
+.depth{position:absolute;right:4%;top:8%;font-size:20px}.round{letter-spacing:.35em;color:var(--cyan);margin-bottom:25px}
+.prompt{font-size:clamp(24px,4vw,55px);max-width:1000px;font-weight:bold;line-height:1.25}
+.timer{font-size:clamp(45px,8vw,100px);margin:35px;color:var(--cyan)}
+.controls{display:flex;gap:12px}.end{display:none}
+.small{font-size:12px;opacity:.7;margin-top:10px}
+@media(max-width:600px){.grid{grid-template-columns:1fr}.full{grid-column:auto}.card{padding:18px}.logo{letter-spacing:.06em}}
+
+.terminalGrid{pointer-events:none;position:fixed;inset:0;z-index:1;opacity:.16;
+background-image:linear-gradient(rgba(88,255,154,.25) 1px,transparent 1px),
+linear-gradient(90deg,rgba(88,255,154,.25) 1px,transparent 1px);
+background-size:38px 38px}
+.statusbar{position:fixed;left:18px;top:18px;z-index:7;color:#58ff9a;font-size:12px;letter-spacing:.12em}
+.statusbar b{animation:blink 1.1s steps(2) infinite}@keyframes blink{50%{opacity:.2}}
+.prompt:before{content:"SECURITY EVENT // ";display:block;color:#58ff9a;font-size:13px;letter-spacing:.25em;margin-bottom:18px}
+</style></head>
+<body><div class="terminalGrid"></div><div class="statusbar"><b>●</b> SOC ONLINE &nbsp;|&nbsp; DEFENSIVE SIMULATION</div>
+<div class="screen" id="home">
+<button class="gear" onclick="openSettings()">⚙</button>
+<div class="sky"><header><div class="logo">SECURITY DEBUG</div><div class="sub">INCIDENT RESPONSE SIMULATOR</div></header></div>
+<div class="ocean"><div class="wave"></div></div>
+<div class="card" id="startCard">
+<div style="text-align:center;letter-spacing:.15em;margin-bottom:20px" id="summary">7 PROMPTS · 25 SECONDS EACH · THREATS ESCALATE</div>
+<button class="primary" onclick="startGame()">▶ START SECURITY DEBUG ◀</button>
+<div class="small">Custom cyber-security tabletop simulator. Scenarios are fictional and designed for defensive discussion.</div>
+</div>
+<div class="card settings" id="settings">
+<h2>GAME SETTINGS</h2>
+<div class="grid">
+<label>NUMBER OF PROMPTS<input id="count" type="number" min="1" max="30" value="7"></label>
+<label>SECONDS PER PROMPT<input id="seconds" type="number" min="5" max="180" value="25"></label>
+<label>MAX THREAT SCORE<input id="maxDepth" type="number" min="10" max="5000" value="700"></label>
+<label>SCENARIO TYPE<select id="category"><option value="mixed">Mixed Security</option><option value="funny">Phishing / Social Engineering</option><option value="deep">Incident Response</option><option value="chaotic">Red-Team Chaos</option></select></label>
+<label class="full">ANALYST NAMES / CALL SIGNS (comma separated)<input id="players" placeholder="Cipher, Nova, Root"></label>
+<label class="full">CUSTOM SECURITY SCENARIOS (one per line — used first)<textarea id="custom" rows="5" placeholder="A user reports an unexpected MFA request. What do you investigate first?&#10;An endpoint begins contacting an unknown domain. What is your first containment action?"></textarea></label>
+</div>
+<div class="actions"><button onclick="closeSettings()">CANCEL</button><button onclick="saveSettings()">SAVE SETTINGS</button></div>
+</div>
+</div>
+
+<div class="game" id="game">
+<div class="depth" id="depth">0 m</div>
+<div class="gameInner">
+<div class="round" id="round">INCIDENT 1 / 7</div>
+<div class="prompt" id="prompt"></div>
+<div class="timer" id="timer">25</div>
+<div class="controls"><button onclick="nextPrompt()">NEXT INCIDENT</button><button onclick="quit()">ABORT SESSION</button></div>
+<div class="end" id="end"><h1>SECURITY DEBUG COMPLETE</h1><p id="endDepth"></p><button onclick="quit()">RETURN TO CONSOLE</button></div>
+</div></div>
+
+<script>
+const banks={
+funny:[
+"PHISHING ALERT: An employee receives a password-reset email from a lookalike domain. Name three warning signs.",
+"SOCIAL ENGINEERING: Someone claiming to be IT asks for an MFA code over the phone. What should the employee do?",
+"QR PHISHING: A poster in the office asks employees to scan a QR code to re-authenticate. How would you verify it safely?",
+"TAILGATING: An unknown person follows an employee through a badge-controlled door. What is the safest response?",
+"HELP DESK: A caller urgently requests an account reset but cannot pass identity verification. What should happen next?",
+"USB DROP: An unknown USB drive is found in the parking lot. What is the correct handling procedure?",
+"FAKE EXECUTIVE: A message claiming to be from leadership requests an unusual wire transfer. How do you validate it?"
+],
+deep:[
+"INCIDENT RESPONSE: A workstation shows signs of malware. What should be contained first, and what evidence should be preserved?",
+"CREDENTIAL EXPOSURE: A team member accidentally posts an API key in a public repository. What actions should happen immediately?",
+"RANSOMWARE WARNING: Several systems suddenly report inaccessible files. What are your first three defensive priorities?",
+"ACCOUNT TAKEOVER: Sign-ins appear from an unfamiliar location despite MFA. What logs and controls would you review?",
+"DATA EXPOSURE: A storage bucket may have been publicly accessible. How would you determine scope and impact?",
+"LOST DEVICE: A company laptop containing sensitive project files is reported missing. What controls reduce the risk?",
+"POST-INCIDENT: The threat is contained. What should the team document so the same failure is less likely to happen again?"
+],
+chaotic:[
+"CRITICAL ALERT: Multiple employee accounts trigger impossible-travel alerts at once. Decide what to verify before disabling access.",
+"THIRD-PARTY RISK: A trusted vendor announces a breach. What dependencies and credentials should your team review first?",
+"INSIDER-RISK SCENARIO: Sensitive files are being downloaded unusually quickly. How do you investigate without jumping to conclusions?",
+"ZERO-DAY NOTICE: A critical product your organization uses announces a newly disclosed vulnerability. How do you prioritize the response?",
+"DNS ANOMALY: Several endpoints begin contacting a newly registered domain. What defensive evidence would help determine whether it is malicious?",
+"CLOUD MISCONFIGURATION: A security scan finds an internet-accessible administrative service. What should the team do first?",
+"BACKUP FAILURE: During an incident, the team discovers the latest backup cannot be restored. What should the response plan prioritize?"
+]
+};
+banks.mixed=[banks.funny[0],banks.funny[1],banks.deep[1],banks.deep[0],banks.chaotic[4],banks.deep[4],banks.chaotic[1]];
+let cfg={}, prompts=[], idx=0, left=0, tick=null;
+function openSettings(){document.getElementById("startCard").style.display="none";document.getElementById("settings").style.display="block"}
+function closeSettings(){document.getElementById("settings").style.display="none";document.getElementById("startCard").style.display="block"}
+function readCfg(){return {count:+count.value,seconds:+seconds.value,maxDepth:+maxDepth.value,category:category.value,players:players.value,custom:custom.value}}
+function saveSettings(){cfg=readCfg();localStorage.deepDive=JSON.stringify(cfg);summary.textContent=`${cfg.count} PROMPTS · ${cfg.seconds} SECONDS EACH · THREATS ESCALATE`;closeSettings()}
+function load(){if(localStorage.deepDive){let x=JSON.parse(localStorage.deepDive);for(let k in x)if(document.getElementById(k))document.getElementById(k).value=x[k]}saveSettings()}
+function makePrompts(){
+ let custom=cfg.custom.split("\n").map(x=>x.trim()).filter(Boolean), bank=[...banks[cfg.category]];
+ prompts=[...custom]; while(prompts.length<cfg.count){prompts.push(bank[prompts.length%bank.length])} prompts=prompts.slice(0,cfg.count);
+ if(cfg.players.trim()){let ps=cfg.players.split(",").map(x=>x.trim()).filter(Boolean);prompts=prompts.map((p,i)=>p.replace("{player}",ps[i%ps.length]))}
+}
+function startGame(){cfg=readCfg();makePrompts();idx=0;home.style.display="none";game.style.display="block";showPrompt()}
+function showPrompt(){
+ clearInterval(tick); if(idx>=prompts.length){finish();return}
+ left=cfg.seconds; round.textContent=`INCIDENT ${idx+1} / ${cfg.count}`;prompt.textContent=prompts[idx];timer.textContent=left;
+ let d=Math.round(cfg.maxDepth*idx/cfg.count);depth.textContent=`THREAT ${d}`;
+ let light=Math.max(5,36-Math.round(28*idx/cfg.count));game.style.background=`linear-gradient(hsl(200 70% ${light+8}%),hsl(215 75% ${light}%))`;
+ tick=setInterval(()=>{left--;timer.textContent=left;if(left<=0)nextPrompt()},1000)
+}
+function nextPrompt(){clearInterval(tick);idx++;showPrompt()}
+function finish(){clearInterval(tick);round.style.display=prompt.style.display=timer.style.display="none";document.querySelector(".controls").style.display="none";depth.textContent=`THREAT ${cfg.maxDepth}`;endDepth.textContent=`Simulation complete. Final threat score: ${cfg.maxDepth}.`;end.style.display="block"}
+function quit(){clearInterval(tick);game.style.display="none";home.style.display="flex";round.style.display=prompt.style.display=timer.style.display="";document.querySelector(".controls").style.display="flex";end.style.display="none";game.style.background=""}
+load();
+</script></body></html>
